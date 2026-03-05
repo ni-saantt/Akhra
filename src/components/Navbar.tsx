@@ -22,53 +22,60 @@ export default function Navbar() {
         router.push('/login');
     };
 
-    if (!isClient) return null; // Avoid mismatch during hydration
+    if (!isClient) return null;
 
     const isAuthPage = pathname === '/login' || pathname === '/register';
 
     return (
-        <nav className="bg-green-600 text-white shadow-md sticky top-0 z-50">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="flex justify-between h-16">
+        <nav className="fixed top-4 left-0 right-0 z-50 px-4 sm:px-6 lg:px-8">
+            <div className="max-w-7xl mx-auto glass shadow-2xl rounded-3xl overflow-hidden border border-white/30">
+                <div className="flex justify-between items-center h-20 px-8 bg-white/10 backdrop-blur-md">
                     <div className="flex items-center">
-                        <Link href="/" className="flex-shrink-0 flex items-center">
-                            <span className="text-2xl font-bold flex items-center gap-2">
-                                🌾 Akhra Kisan
+                        <Link href="/" className="flex-shrink-0 flex items-center group">
+                            <span className="text-3xl font-black text-deep-green tracking-tighter transition-all group-hover:scale-105">
+                                🌾 AKHRA KISAN
                             </span>
                         </Link>
                     </div>
-                    <div className="flex items-center space-x-4">
+                    <div className="flex items-center space-x-6">
                         {!isAuthPage && (
                             isLoggedIn ? (
                                 <>
-                                    <Link href="/dashboard" className="hover:text-green-200 px-3 py-2 rounded-md font-medium transition-colors">
+                                    <Link href="/dashboard" className="text-deep-green hover:text-primary-green px-3 py-2 rounded-xl text-sm font-bold transition-all uppercase tracking-widest">
                                         Dashboard
                                     </Link>
-                                    <Link href="/dashboard" className="hover:text-green-200 px-3 py-2 rounded-md font-medium transition-colors">
+                                    <Link href="/dashboard" className="text-deep-green hover:text-primary-green px-3 py-2 rounded-xl text-sm font-bold transition-all uppercase tracking-widest">
                                         Add Plot
                                     </Link>
                                     <button
                                         onClick={handleLogout}
-                                        className="px-4 py-2 rounded-xl font-semibold bg-green-700 hover:bg-green-800 transition-colors"
+                                        className="px-6 py-2.5 rounded-2xl font-black bg-deep-green text-white hover:bg-primary-green transition-all shadow-lg active:scale-95 uppercase text-xs tracking-widest"
                                     >
                                         Logout
                                     </button>
                                 </>
                             ) : (
                                 <>
-                                    <Link href="/" className="hover:text-green-200 px-3 py-2 rounded-md font-medium transition-colors">
+                                    <Link href="/" className="text-deep-green hover:text-primary-green px-3 py-2 rounded-xl text-sm font-bold transition-all uppercase tracking-widest">
                                         Home
                                     </Link>
-                                    <Link href="/login" className="hover:text-green-200 px-3 py-2 rounded-md font-medium transition-colors">
+                                    <Link href="/login" className="text-deep-green hover:text-primary-green px-3 py-2 rounded-xl text-sm font-bold transition-all uppercase tracking-widest">
                                         Login
                                     </Link>
                                     <Link href="/register">
-                                        <button className="px-4 py-2 rounded-xl font-semibold bg-white text-green-700 hover:bg-green-50 transition-colors shadow-sm">
+                                        <button className="px-6 py-2.5 rounded-2xl font-black bg-white text-deep-green hover:bg-primary-green hover:text-white transition-all shadow-xl active:scale-95 uppercase text-xs tracking-widest border border-white/20">
                                             Register
                                         </button>
                                     </Link>
                                 </>
                             )
+                        )}
+                        {isAuthPage && (
+                            <Link href="/">
+                                <button className="px-6 py-2.5 rounded-2xl font-black bg-white text-deep-green hover:bg-primary-green hover:text-white transition-all shadow-xl active:scale-95 uppercase text-xs tracking-widest border border-white/20">
+                                    Back Home
+                                </button>
+                            </Link>
                         )}
                     </div>
                 </div>

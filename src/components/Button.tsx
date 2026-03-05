@@ -1,7 +1,7 @@
 import React, { ButtonHTMLAttributes } from 'react';
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-    variant?: 'primary' | 'secondary' | 'danger' | 'outline';
+    variant?: 'primary' | 'secondary' | 'danger' | 'outline' | 'glass';
     fullWidth?: boolean;
 }
 
@@ -12,13 +12,14 @@ export default function Button({
     className = '',
     ...props
 }: ButtonProps) {
-    const baseStyle = 'px-4 py-2 rounded-xl font-semibold transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2';
+    const baseStyle = 'px-6 py-3 rounded-2xl font-bold transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 active:scale-95';
 
     const variants = {
-        primary: 'bg-green-600 text-white hover:bg-green-700 focus:ring-green-500 shadow-sm',
-        secondary: 'bg-green-100 text-green-800 hover:bg-green-200 focus:ring-green-400',
-        outline: 'border-2 border-green-600 text-green-700 hover:bg-green-50 focus:ring-green-500',
-        danger: 'bg-red-500 text-white hover:bg-red-600 focus:ring-red-400'
+        primary: 'bg-primary-green text-white hover:bg-deep-green focus:ring-primary-green shadow-lg shadow-primary-green/20',
+        secondary: 'bg-accent-green text-white hover:bg-primary-green focus:ring-accent-green shadow-md shadow-accent-green/20',
+        outline: 'border-2 border-primary-green text-primary-green hover:bg-primary-green hover:text-white focus:ring-primary-green',
+        glass: 'glass text-deep-green hover:bg-white/40 focus:ring-white shadow-xl',
+        danger: 'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500 shadow-md shadow-red-200'
     };
 
     const widthStyle = fullWidth ? 'w-full' : '';
