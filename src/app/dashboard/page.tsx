@@ -20,6 +20,7 @@ const MapPlotter = dynamic(() => import('@/components/MapPlotter'), {
 
 interface PlotData {
     id: number;
+    name: string;
     geo_data: any;
     soil_ph: number;
     soil_organic_carbon: number;
@@ -54,15 +55,27 @@ export default function Dashboard() {
         }
     };
 
-    const handlePlotSaved = async (geoData: any) => {
+    const handlePlotSaved = async (geoData: any, name: string) => {
         try {
-            const res = await api.post('/plots', { geo_data: geoData });
+            const res = await api.post('/plots', { geo_data: geoData, name });
             setPlots([res.data, ...plots]);
             setIsMapping(false);
-            alert('Plot boundary and soil data captured successfully!');
+            alert(`Plot "${name}" captured successfully!`);
         } catch (err) {
             console.error('Error saving plot:', err);
             alert('Failed to save plot. Please try again.');
+        }
+    };
+
+    const handleDeletePlot = async (id: number) => {
+        if (!confirm('Are you sure you want to delete this plot? This action cannot be undone.')) return;
+        
+        try {
+            await api.delete(`/plots/${id}`);
+            setPlots(plots.filter(p => p.id !== id));
+        } catch (err) {
+            console.error('Error deleting plot:', err);
+            alert('Failed to delete plot.');
         }
     };
 
@@ -193,6 +206,59 @@ export default function Dashboard() {
                             <p className="mt-6 text-xs text-white/40 italic font-medium">Unlock advisor by adding land plots.</p>
                         </div>
                     </Card>
+                </div>
+
+                {/* Plot List Section */}
+                <div className="animate-in fade-in slide-in-from-bottom-10 duration-1000 delay-200">
+                    <div className="flex items-center justify-between mb-6">
+                        <h2 className="text-2xl font-black text-white tracking-tight flex items-center gap-3">
+                            <span className="text-3xl">🗺</span> Registered Plots
+                        </h2>
+                    </div>
+
+                    {plots.length === 0 ? (
+                        <Card variant="glass" className="py-12 text-center border-dashed border-white/20">
+                            <div className="text-4xl mb-4 opacity-40">📭</div>
+                            <p className="text-white/40 font-bold uppercase text-xs tracking-[0.2em]">No plots registered yet. Use the button above to start mapping.</p>
+                        </Card>
+                    ) : (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {plots.map((plot) => (
+                                <Card key={plot.id} variant="glass" className="p-0 overflow-hidden border-white/10 group">
+                                    <div className="p-6">
+                                        <div className="flex justify-between items-start mb-4">
+                                            <div>
+                                                <h3 className="text-xl font-black text-white tracking-tight">{plot.name}</h3>
+                                                <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest mt-1">ID: #{plot.id}</p>
+                                            </div>
+                                            <button 
+                                                onClick={() => handleDeletePlot(plot.id)}
+                                                className="text-white/20 hover:text-red-400 transition-colors p-2"
+                                                title="Delete Plot"
+                                            >
+                                                🗑
+                                            </button>
+                                        </div>
+                                        
+                                        <div className="grid grid-cols-2 gap-4 mt-6">
+                                            <div className="bg-white/5 rounded-2xl p-3 border border-white/5">
+                                                <p className="text-[8px] font-black text-white/40 uppercase tracking-widest mb-1">Soil PH</p>
+                                                <p className="text-lg font-black text-highlight-yellow">{plot.soil_ph.toFixed(1)}</p>
+                                            </div>
+                                            <div className="bg-white/5 rounded-2xl p-3 border border-white/5">
+                                                <p className="text-[8px] font-black text-white/40 uppercase tracking-widest mb-1">Organic Carbon</p>
+                                                <p className="text-lg font-black text-soft-green">{plot.soil_organic_carbon.toFixed(1)}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="bg-white/5 px-6 py-3 flex justify-between items-center border-t border-white/5">
+                                        <span className="text-[9px] font-black text-white/30 uppercase tracking-[0.2em]">Soil Health: {plot.soil_ph > 6 ? 'Optimal' : 'Needs Care'}</span>
+                                        <button className="text-[9px] font-black text-soft-green uppercase tracking-widest hover:underline">View Map →</button>
+                                    </div>
+                                </Card>
+                            ))}
+                        </div>
+                    )}
                 </div>
 
                 {/* Floating Indicator / secondary Actions */}
