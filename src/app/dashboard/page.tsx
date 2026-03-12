@@ -490,6 +490,10 @@ export default function Dashboard() {
                     </div>
                 );
             case 'advisory':
+                const advisoryPlots = plots.length > 0 ? plots : [
+                    { id: 99, name: 'Sample Plot A', crop_name: 'Wheat', soil_ph: 6.5, planting_date: '2026-01-10' }
+                ];
+
                 return (
                     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 min-h-[60vh] pb-32">
                         <div className="flex justify-between items-end mb-12">
@@ -497,31 +501,206 @@ export default function Dashboard() {
                                 <h1 className="text-3xl font-black text-white tracking-tight italic">
                                     Technical <span className="text-soft-green opacity-80">Advisory</span>
                                 </h1>
-                                <p className="text-white/40 text-[10px] font-bold uppercase tracking-[0.2em] mt-1">Expert Support Systems</p>
+                                <p className="text-white/40 text-[10px] font-bold uppercase tracking-[0.2em] mt-1">Smart Farming Decision Support</p>
                             </div>
-                            <div className="px-3 py-1.5 bg-white/5 backdrop-blur-md rounded-full border border-white/5 flex items-center gap-2">
-                                <span className="w-1.5 h-1.5 rounded-full bg-blue-400" />
-                                <span className="text-[9px] font-black text-white/50 uppercase tracking-widest">Protocol Active</span>
+                            <div className="flex items-center gap-3">
+                                <div className="px-3 py-1.5 bg-black/40 backdrop-blur-md rounded-full border border-white/10 flex items-center gap-2">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-soft-green animate-pulse" />
+                                    <span className="text-[9px] font-black text-white/50 uppercase tracking-widest">IA Intelligence Active</span>
+                                </div>
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {[
-                                { title: 'NPK Calculator', desc: 'Precise fertilizer optimization for specific plot yields.', theme: 'primary-green', icon: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 2v8"/><path d="M14 2v8"/><path d="M8 8v1a4 4 0 0 0 8 0v-1"/><path d="M16 2a2 2 0 0 1 2 2v1a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z"/><path d="M2 22h20"/><path d="M12 22V12"/></svg> },
-                                { title: 'Pest Diagnostic', desc: 'Computer vision analysis for immediate disease detection.', theme: 'red-500', icon: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="M2 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="M12 22v-2"/><path d="m19.07 19.07-1.41-1.41"/><path d="M22 12h-2"/><path d="m17.66 6.34 1.41-1.41"/><path d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/></svg> },
-                                { title: 'Sowing Protocol', desc: 'Season-locked planting schedules for maximum efficiency.', theme: 'blue-400', icon: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/><path d="M16 18h.01"/></svg> }
-                            ].map((tool, idx) => (
-                                <GlassCard key={idx} className="p-8 border border-white/5 bg-white/[0.02] hover:bg-white/[0.05] transition-all group relative overflow-hidden">
-                                    <div className={`w-10 h-10 rounded-xl mb-6 flex items-center justify-center text-white/40 group-hover:text-white transition-colors duration-300`}>
-                                        {tool.icon}
+                        {/* ⚠️ Emergency Regional Alerts */}
+                        <div className="space-y-4 mb-12">
+                            <GlassCard className="border-l-4 border-red-500 bg-red-500/10 p-6 flex flex-col md:flex-row justify-between items-center gap-6 shadow-[0_0_30px_rgba(239,68,68,0.1)]">
+                                <div className="flex items-center gap-5">
+                                    <div className="w-12 h-12 rounded-2xl bg-red-500 text-white flex items-center justify-center shadow-lg">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
                                     </div>
-                                    <h3 className="text-sm font-black text-white mb-2 uppercase tracking-widest">{tool.title}</h3>
-                                    <p className="text-white/40 text-[10px] leading-relaxed mb-8">{tool.desc}</p>
-                                    <button className="w-full py-2.5 rounded-lg bg-white/5 text-white/60 font-black uppercase text-[9px] tracking-widest border border-white/5 hover:bg-white/10 hover:text-white transition-all">
-                                        Initialize Tool
-                                    </button>
-                                </GlassCard>
+                                    <div>
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <span className="bg-red-500 text-[8px] px-2 py-0.5 rounded font-black text-white uppercase tracking-widest">High Risk</span>
+                                            <h3 className="text-white font-black text-xs uppercase tracking-widest">Emergency Pest Alert</h3>
+                                        </div>
+                                        <p className="text-white/60 text-[11px] leading-relaxed max-w-xl">Locust activity reported in nearby district. Monitor all plots carefully and prepare Neem Protocol buffers.</p>
+                                    </div>
+                                </div>
+                                <button className="px-6 py-2.5 bg-white text-black text-[9px] font-black uppercase tracking-widest rounded-xl hover:bg-white/90 transition-all shadow-xl">View Control Map</button>
+                            </GlassCard>
+
+                            <GlassCard className="border-l-4 border-highlight-yellow bg-highlight-yellow/10 p-6 flex flex-col md:flex-row justify-between items-center gap-6">
+                                <div className="flex items-center gap-5">
+                                    <div className="w-12 h-12 rounded-2xl bg-highlight-yellow text-deep-green flex items-center justify-center shadow-lg">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M4.34 21 10 3h4l5.66 18"/><path d="m6.21 15 11.58 0"/></svg>
+                                    </div>
+                                    <div>
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <span className="bg-highlight-yellow text-blue-900 text-[8px] px-2 py-0.5 rounded font-black uppercase tracking-widest font-sans">Weather Protocol</span>
+                                            <h3 className="text-white font-black text-xs uppercase tracking-widest">Weather Alert: Rain Predicted</h3>
+                                        </div>
+                                        <p className="text-white/60 text-[11px] leading-relaxed italic"><span className="text-highlight-yellow font-bold">Rain expected in 48 hours.</span> Recommended Action: <span className="text-white font-bold underline decoration-highlight-yellow/50">Delay irrigation today</span> to prevent root water-logging.</p>
+                                    </div>
+                                </div>
+                                <div className="text-right">
+                                    <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest mb-1">Cloud Cover</p>
+                                    <p className="text-lg font-black text-highlight-yellow">82%</p>
+                                </div>
+                            </GlassCard>
+                        </div>
+
+                        {/* Area-Focused Advisory */}
+                        <div className="space-y-16">
+                            {advisoryPlots.map((plot, pIdx) => (
+                                <div key={pIdx} className="bg-black/10 rounded-[2.5rem] p-8 border border-white/5">
+                                    <div className="flex items-center justify-between mb-8 px-4">
+                                        <div className="flex items-center gap-6">
+                                            <div className="w-14 h-14 rounded-3xl bg-soft-green/20 flex items-center justify-center text-soft-green shadow-inner">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 3.5 1 5.5-2 4-5 11.5-8 12.5z"/><path d="M9 3.5c0 2.5 7 6.5 7 6.5s-4.5 3.5-7 3.5"/></svg>
+                                            </div>
+                                            <div>
+                                                <h2 className="text-white font-black text-2xl tracking-tight uppercase italic">{plot.name}</h2>
+                                                <p className="text-soft-green text-[10px] font-black uppercase tracking-[0.4em]">{plot.crop_name || 'Wheat'} Protocol active</p>
+                                            </div>
+                                        </div>
+                                        <div className="text-right flex items-center gap-6">
+                                            <div>
+                                                <p className="text-[9px] font-black text-white/20 uppercase tracking-widest mb-1">Soil Moisture</p>
+                                                <p className="text-xl font-black text-white">32%</p>
+                                            </div>
+                                            <div className="w-[1px] h-10 bg-white/10" />
+                                            <div>
+                                                <p className="text-[9px] font-black text-white/20 uppercase tracking-widest mb-1">Soil health</p>
+                                                <p className="text-xl font-black text-highlight-yellow italic">Optimal</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Crop Lifecycle Timeline */}
+                                    <div className="mb-12 px-4">
+                                        <div className="flex justify-between items-end mb-6">
+                                            <span className="text-[10px] font-black text-white/30 uppercase tracking-[0.5em]">Crop Life-Cycle Timeline</span>
+                                            <div className="bg-soft-green/20 px-3 py-1 rounded-lg border border-soft-green/30">
+                                                <span className="text-[11px] font-black text-soft-green uppercase tracking-widest">Current: Vegetative (Day 32)</span>
+                                            </div>
+                                        </div>
+                                        <div className="relative pt-4 pb-8">
+                                            <div className="absolute top-7 left-0 right-0 h-[2px] bg-white/5" />
+                                            <div className="flex justify-between relative z-10">
+                                                {['Sowing', 'Germination', 'Vegetative', 'Flowering', 'Harvest'].map((stage, idx) => {
+                                                    const isActive = stage === 'Vegetative';
+                                                    const isPast = idx < 2;
+                                                    return (
+                                                        <div key={stage} className="flex flex-col items-center gap-3">
+                                                            <div className={`w-6 h-6 rounded-full border-4 flex items-center justify-center transition-all ${
+                                                                isActive ? 'border-soft-green bg-white shadow-[0_0_15px_rgba(74,222,128,0.8)] scale-125' : 
+                                                                isPast ? 'border-soft-green/40 bg-soft-green/40' : 'border-white/10 bg-black'
+                                                            }`}>
+                                                                {isPast && !isActive && <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="4"><polyline points="20 6 9 17 4 12"/></svg>}
+                                                            </div>
+                                                            <span className={`text-[9px] font-black uppercase tracking-widest ${isActive ? 'text-white' : 'text-white/20'}`}>{stage}</span>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                                        {/* 1. Plot-Wise Task List */}
+                                        <GlassCard className="bg-black/60 border border-white/10 p-8 backdrop-blur-3xl relative overflow-hidden group">
+                                            <div className="flex justify-between items-center mb-8 relative">
+                                                <h3 className="text-white/40 text-[9px] font-black uppercase tracking-[0.4em]">Daily Action List</h3>
+                                                <div className="w-8 h-8 rounded-full bg-soft-green/20 flex items-center justify-center text-soft-green">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg>
+                                                </div>
+                                            </div>
+                                            <div className="space-y-4">
+                                                {[
+                                                    { t: "Water this plot before 6 PM", s: "Next rain in 2 days" },
+                                                    { t: "Check for aphids under leaves", s: "Regional alert active" },
+                                                    { t: "Apply Nitrogen boost", s: "Vegetative stage requirement" }
+                                                ].map((task, idx) => (
+                                                    <div key={idx} className="flex gap-4 group/item cursor-pointer">
+                                                        <div className="w-5 h-5 rounded-md border border-white/10 flex-shrink-0 flex items-center justify-center group-hover/item:border-soft-green transition-all">
+                                                            <div className="w-2 h-2 rounded-full bg-white/5 group-hover/item:bg-soft-green shadow-[0_0_8px_rgba(74,222,128,0.3)]" />
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-white text-xs font-bold leading-tight group-hover/item:text-soft-green transition-colors">{task.t}</p>
+                                                            <p className="text-white/20 text-[8px] uppercase tracking-widest mt-1">{task.s}</p>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </GlassCard>
+
+                                        {/* 2. Simplified Action: Feeding/Soil */}
+                                        <GlassCard className="bg-black/60 border border-white/10 p-8 flex flex-col justify-between group backdrop-blur-3xl">
+                                            <div>
+                                                <div className="flex justify-between items-start mb-8">
+                                                    <h3 className="text-white/40 text-[9px] font-black uppercase tracking-[0.4em]">Soil Feeding (Simplified)</h3>
+                                                    <div className="w-8 h-8 rounded-full bg-highlight-yellow/10 flex items-center justify-center text-highlight-yellow">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10 2v8"/><path d="M14 2v8"/><path d="M8 8v1a4 4 0 0 0 8 0v-1"/><path d="M16 2a2 2 0 0 1 2 2v1a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z"/><path d="M2 22h20"/><path d="M12 22V12"/></svg>
+                                                    </div>
+                                                </div>
+                                                <p className="text-white/80 text-[15px] font-medium leading-relaxed mb-6 italic">
+                                                    "Soil is slightly acidic. Add <span className="text-highlight-yellow font-black">2 bags of lime</span> per acre this weekend to normalize."
+                                                </p>
+                                            </div>
+                                            <div className="pt-6 mt-6 border-t border-white/10 flex justify-between items-center group/voice cursor-pointer">
+                                                <div className="w-8 h-8 rounded-full bg-highlight-yellow/10 flex items-center justify-center text-highlight-yellow group-hover/voice:bg-highlight-yellow group-hover/voice:text-deep-green transition-all shadow-[0_0_15px_rgba(250,204,21,0.1)]">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+                                                </div>
+                                                <span className="text-[9px] font-black text-white/20 uppercase tracking-[0.3em] group-hover/voice:text-highlight-yellow transition-colors italic">Listen to Protocol</span>
+                                            </div>
+                                        </GlassCard>
+
+                                        {/* Practical Disease Detection (Photo Ready) */}
+                                        <GlassCard className="bg-primary-green/10 border border-soft-green/30 p-8 flex flex-col justify-between relative group shadow-[0_15px_40px_rgba(74,222,128,0.1)]">
+                                            <div className="absolute top-0 right-0 p-4">
+                                                <div className="w-2 h-2 rounded-full bg-soft-green shadow-[0_0_10px_rgba(74,222,128,1)]" />
+                                            </div>
+                                            <div>
+                                                <h3 className="text-soft-green text-[10px] font-black uppercase tracking-[0.4em] mb-6">Disease Detection (Vision)</h3>
+                                                <div className="aspect-square w-full rounded-2xl bg-black/40 border-2 border-dashed border-soft-green/30 mb-6 flex flex-col items-center justify-center p-8 group-hover:bg-black/60 transition-all">
+                                                    <div className="w-16 h-16 rounded-full bg-soft-green/10 flex items-center justify-center text-soft-green mb-4 group-hover:scale-110 transition-transform">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                                                    </div>
+                                                    <p className="text-[11px] font-black text-white text-center uppercase tracking-widest leading-relaxed">Click Photo or Upload Leaf Image</p>
+                                                    <p className="text-[9px] font-bold text-soft-green/50 text-center mt-2">IA Diagnosis Protocol</p>
+                                                </div>
+                                            </div>
+                                            <button className="w-full py-4 bg-soft-green text-deep-green text-[10px] font-black uppercase tracking-[0.2em] rounded-[1.2rem] hover:bg-white transition-all shadow-xl active:scale-95">Open Live Scanner</button>
+                                        </GlassCard>
+                                    </div>
+                                </div>
                             ))}
+                        </div>
+
+                        {/* Seasonal Universal Footer */}
+                        <div className="mt-24 pt-16 border-t border-white/10 text-center max-w-4xl mx-auto">
+                            <h3 className="text-[12px] font-black text-white uppercase tracking-[0.6em] mb-12 opacity-30">Global Seasonal Strategy</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                {[
+                                    { t: "Best Sowing Window", v: "Starts in 18 Days", i: "🗓️" },
+                                    { t: "Expected Harvest Price", v: "Bullish (+12%)", i: "📈" },
+                                    { t: "Regional Water Level", v: "Stable (Jharkhand North)", i: "🛰️" }
+                                ].map((stat, i) => (
+                                    <div key={i} className="p-8 rounded-[2rem] bg-white/[0.02] border border-white/5">
+                                        <div className="text-3xl mb-4">{stat.i}</div>
+                                        <p className="text-[9px] font-black text-white/30 uppercase tracking-widest mb-1">{stat.t}</p>
+                                        <p className="text-sm font-black text-white tracking-tight italic">{stat.v}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="text-center py-24">
+                            <div className="bg-black/40 inline-flex items-center gap-4 px-6 py-2 rounded-full border border-white/5">
+                                <span className="text-[8px] font-black text-white/20 uppercase tracking-[0.4em]">Protocol Node 842-AX</span>
+                                <div className="w-1 h-1 rounded-full bg-white/10" />
+                                <span className="text-[8px] font-black text-soft-green/40 uppercase tracking-[0.4em]">Verified by BAU (Birsa Agricultural University)</span>
+                            </div>
                         </div>
                     </div>
                 );
