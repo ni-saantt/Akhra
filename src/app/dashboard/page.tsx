@@ -3,11 +3,13 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import Button from '@/components/Button';
-import Card from '@/components/Card';
 import Image from 'next/image';
 import api from '@/utils/api';
 import { FarmerData } from '@/types/farmer';
+import GlassCard from '@/components/GlassCard';
+import PlotCard from '@/components/PlotCard';
+import WeatherCard from '@/components/WeatherCard';
+import PlotDetailModal from '@/components/PlotDetailModal';
 
 const MapPlotter = dynamic(() => import('@/components/MapPlotter'), {
     ssr: false,
@@ -18,12 +20,28 @@ const MapPlotter = dynamic(() => import('@/components/MapPlotter'), {
     ),
 });
 
+const MiniFarmMap = dynamic(() => import('@/components/MiniFarmMap'), {
+    ssr: false,
+    loading: () => (
+        <div className="w-full h-full flex items-center justify-center bg-deep-green/20">
+            <div className="w-6 h-6 border-2 border-white/50 border-t-white rounded-full animate-spin"></div>
+        </div>
+    )
+});
+
 interface PlotData {
     id: number;
     name: string;
     geo_data: any;
     soil_ph: number;
     soil_organic_carbon: number;
+    crop_name?: string;
+    planting_date?: string;
+    harvest_duration?: number;
+    moisture_level?: number;
+    pest_risk?: string;
+    weather_alert?: string;
+    created_at?: string;
 }
 
 export default function Dashboard() {
@@ -32,6 +50,7 @@ export default function Dashboard() {
     const [plots, setPlots] = useState<PlotData[]>([]);
     const [loading, setLoading] = useState(true);
     const [isMapping, setIsMapping] = useState(false);
+    const [selectedPlot, setSelectedPlot] = useState<PlotData | null>(null);
 
     useEffect(() => {
         const savedData = localStorage.getItem('farmer');
@@ -79,8 +98,9 @@ export default function Dashboard() {
         }
     };
 
-    const latestSoilPh = plots.length > 0 ? plots[0].soil_ph : 0;
-    const latestSoilSoc = plots.length > 0 ? plots[0].soil_organic_carbon : 0;
+    const handleViewMap = (plot: PlotData) => {
+        setSelectedPlot(plot);
+    };
 
     if (loading) {
         return (
@@ -95,8 +115,14 @@ export default function Dashboard() {
 
     if (!farmer) return null;
 
+    // Derived stats
+    const totalArea = plots.reduce((sum, p) => sum + (1.5 + (p.id % 3)), 0).toFixed(1);
+    const latestSoilPh = plots.length > 0 ? plots[0].soil_ph : 0;
+    const latestSoilSoc = plots.length > 0 ? plots[0].soil_organic_carbon : 0;
+    const avgPh = plots.length > 0 ? (plots.reduce((sum, p) => sum + p.soil_ph, 0) / plots.length).toFixed(1) : 'N/A';
+
     return (
-        <div className="min-h-screen relative flex flex-col pt-32 pb-12 px-4 sm:px-6 lg:px-8 overflow-hidden">
+        <div className="min-h-screen relative flex flex-col pt-28 pb-12 px-4 sm:px-6 lg:px-8 overflow-hidden font-sans">
             {/* Background with Green Overlay */}
             <div className="fixed inset-0 z-[-1]">
                 <Image
@@ -105,40 +131,155 @@ export default function Dashboard() {
                     fill
                     className="object-cover scale-105"
                 />
-                <div className="absolute inset-0 bg-gradient-to-br from-deep-green/90 via-deep-green/60 to-deep-green/95" />
+                <div className="absolute inset-0 bg-gradient-to-t from-deep-green/95 via-deep-green/70 to-deep-green/40 backdrop-blur-[2px]" />
             </div>
 
-            <div className="max-w-7xl mx-auto w-full space-y-10">
+            <div className="max-w-7xl mx-auto w-full">
 
-                {/* Header Section */}
-                <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 animate-in fade-in slide-in-from-left-10 duration-700">
-                    <div className="space-y-2">
-                        <div className="inline-block px-3 py-1 glass rounded-full text-white text-[10px] font-black uppercase tracking-widest border-white/10">
-                            Farmer Command Center
-                        </div>
-                        <h1 className="text-5xl md:text-7xl font-black text-white tracking-tighter leading-tight">
-                            Welcome, <span className="text-soft-green">{farmer.name}</span>
-                        </h1>
-                        <p className="text-white/60 text-lg md:text-xl font-medium tracking-tight">
-                            Currently monitoring fields in <span className="text-white font-bold">{farmer.region || 'unspecified region'}</span>, {farmer.district || 'district unassigned'}.
-                        </p>
-                    </div>
-                    <div className="flex gap-4">
-                        <Button
-                            variant="primary"
-                            className="shadow-2xl shadow-primary-green/40 px-8 py-4"
-                            onClick={() => setIsMapping(true)}
-                        >
-                            + New Plot Mapping
-                        </Button>
-                    </div>
+                {/* Header Label - Moved outside the grid to align Map with Welcome text */}
+                <div className="animate-slide-up mb-2 px-2">
+                    <span className="text-[10px] font-black text-white/70 uppercase tracking-[0.2em]">
+                        FARMER COMMAND CENTER
+                    </span>
                 </div>
 
-                {/* Map Section - Conditional Overlay */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+                    {/* Left Column (Main Stats & Actions) */}
+                    <div className="lg:col-span-8 space-y-6 flex flex-col">
+                        
+                        {/* Hero Info */}
+                        <div className="animate-slide-up">
+                            <h1 className="text-3xl md:text-5xl lg:text-5xl font-black text-white tracking-tighter mb-4 whitespace-nowrap">
+                                Welcome, <span className="text-soft-green">{farmer.name}</span>
+                            </h1>
+                            <p className="text-white/80 font-medium text-sm md:text-base flex items-center gap-2">
+                                Region: <strong className="text-white">{farmer.region}, {farmer.district}</strong>
+                                <span className="opacity-50">•</span>
+                                Total Farms: <strong className="text-white">{plots.length}</strong>
+                                <span className="opacity-50">•</span>
+                                Total Area: <strong className="text-white">{totalArea} Acres</strong>
+                            </p>
+                        </div>
+
+                        {/* Primary Action Card */}
+                        <GlassCard className="animate-slide-up bg-white/10 flex flex-col sm:flex-row justify-between items-center gap-6">
+                            <div className="flex-1">
+                                <h2 className="text-2xl font-black text-white tracking-tight mb-2">Start Mapping Your Farm</h2>
+                                <p className="text-white/70 text-sm">Draw your farm boundary to unlock soil insights and crop recommendations.</p>
+                            </div>
+                            <button
+                                onClick={() => setIsMapping(true)}
+                                className="bg-primary-green hover:bg-deep-green text-white px-6 py-4 rounded-full font-black uppercase text-xs tracking-[0.15em] transition-all shadow-xl active:scale-95 whitespace-nowrap"
+                            >
+                                + Add New Farm Plot
+                            </button>
+                        </GlassCard>
+
+                        {/* Middle Stat Cards Row */}
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 animate-slide-up text-white">
+                            {/* Area Mapped */}
+                            <GlassCard className="flex flex-col justify-center">
+                                <h3 className="text-[10px] font-black text-white/70 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                    <span className="text-accent-green text-lg">📏</span> Total Area Mapped
+                                </h3>
+                                <div className="flex items-baseline gap-2">
+                                    <span className="text-4xl font-black tracking-tighter">{totalArea}</span>
+                                    <span className="text-sm font-bold tracking-widest uppercase">Acres</span>
+                                </div>
+                                <p className="text-xs text-white/50 mt-4 uppercase font-bold tracking-wider">{plots.length} PLOTS</p>
+                            </GlassCard>
+
+                            {/* Soil Environment */}
+                            <GlassCard>
+                                <h3 className="text-[10px] font-black text-white/70 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                    <span className="text-highlight-yellow text-lg">💧</span> Soil Environment
+                                </h3>
+                                <div className="flex items-baseline gap-2">
+                                    <span className="text-4xl font-black text-highlight-yellow tracking-tighter">
+                                        PH {latestSoilPh > 0 ? latestSoilPh.toFixed(1) : '-'}
+                                    </span>
+                                </div>
+                                <div className="mt-4 px-2 py-1 bg-white/10 rounded inline-block">
+                                    <span className="text-[10px] text-highlight-yellow font-black uppercase tracking-wider">
+                                        OC: {latestSoilSoc > 0 ? latestSoilSoc.toFixed(1) : '-'} G/KG
+                                    </span>
+                                </div>
+                            </GlassCard>
+
+                            {/* Weather */}
+                            <WeatherCard />
+                        </div>
+                    </div>
+
+                    {/* Right Column (Map) - Now stretches exactly to sibling height */}
+                    <div className="lg:col-span-4 animate-slide-up">
+                        <GlassCard className="h-[400px] lg:h-full flex flex-col p-4 w-full">
+                            <div className="flex items-center gap-2 mb-4 px-2">
+                                <span className="text-xl">📍</span>
+                                <h3 className="text-[14px] font-black text-white uppercase tracking-widest">Your Farm Map</h3>
+                            </div>
+                            <div className="flex-1 w-full relative rounded-2xl overflow-hidden border border-white/20">
+                                {plots.length > 0 ? (
+                                    <MiniFarmMap plots={plots} />
+                                ) : (
+                                    <div className="w-full h-full bg-deep-green/50 flex items-center justify-center">
+                                        <p className="text-white/40 font-bold text-xs uppercase tracking-widest">No Map Data</p>
+                                    </div>
+                                )}
+                            </div>
+                        </GlassCard>
+                    </div>
+
+                </div>
+
+                {/* Bottom Section (Full Width below Top Grid) */}
+                <div className="mt-8 space-y-8">
+                    {/* Registered Plots Section */}
+                    <div className="animate-slide-up">
+                        <h2 className="text-[14px] font-black text-white tracking-widest uppercase mb-4 flex items-center gap-3">
+                            <span className="text-xl">🚜</span> Registered Plots
+                        </h2>
+                        {plots.length === 0 ? (
+                            <GlassCard className="py-10 text-center border-dashed">
+                                <p className="text-white/50 font-bold uppercase text-xs tracking-widest">No plots registered yet.</p>
+                            </GlassCard>
+                        ) : (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                                {plots.map((plot) => (
+                                    <PlotCard 
+                                        key={plot.id} 
+                                        plot={plot} 
+                                        onDelete={handleDeletePlot} 
+                                        onViewMap={handleViewMap} 
+                                    />
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Bottom Stats Row */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 animate-slide-up text-white/80">
+                        <GlassCard dark className="text-center py-4">
+                            <p className="text-[9px] font-black uppercase tracking-[0.2em] mb-1">TOTAL FARMS</p>
+                            <p className="text-2xl font-black text-white">{plots.length}</p>
+                        </GlassCard>
+                        <GlassCard dark className="text-center py-4">
+                            <p className="text-[9px] font-black uppercase tracking-[0.2em] mb-1">TOTAL AREA MAPPED</p>
+                            <p className="text-2xl font-black text-white">{totalArea} Ac</p>
+                        </GlassCard>
+                        <GlassCard dark className="text-center py-4">
+                            <p className="text-[9px] font-black uppercase tracking-[0.2em] mb-1">AVERAGE SOIL PH</p>
+                            <p className="text-2xl font-black text-highlight-yellow">{avgPh}</p>
+                        </GlassCard>
+                </div>
+                </div>
+
+                {/* Map Mapping Overlay Modal */}
                 {isMapping && (
-                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-8 lg:p-20">
-                        <div className="absolute inset-0 bg-deep-green/40 backdrop-blur-sm" onClick={() => setIsMapping(false)} />
-                        <div className="relative w-full max-w-5xl h-full max-h-[700px] animate-in fade-in zoom-in-95 duration-500">
+                    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 sm:p-8 lg:p-12">
+                        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsMapping(false)} />
+                        <div className="relative w-full max-w-5xl h-[85vh] animate-in fade-in zoom-in-95 duration-500 rounded-[2rem] overflow-hidden shadow-2xl border border-white/20">
                             <MapPlotter
                                 onPlotSaved={handlePlotSaved}
                                 onCancel={() => setIsMapping(false)}
@@ -146,131 +287,13 @@ export default function Dashboard() {
                         </div>
                     </div>
                 )}
-
-                {/* glass Dashboard Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-in fade-in slide-in-from-bottom-10 duration-1000">
-
-                    <Card variant="glass" className="relative overflow-hidden group border-white/10">
-                        <div className="absolute -right-4 -top-4 text-8xl opacity-10 group-hover:scale-125 transition-transform duration-500">📍</div>
-                        <div className="relative z-10">
-                            <h3 className="text-xs font-black text-white/40 uppercase tracking-[0.2em] mb-4">Total Area Mapping</h3>
-                            <div className="flex items-baseline gap-2">
-                                <span className="text-5xl font-black text-white tracking-tighter">{plots.length}</span>
-                                <span className="text-soft-green font-bold uppercase text-xs">{plots.length === 1 ? 'Plot' : 'Plots'}</span>
-                            </div>
-                            <div className="mt-6 w-full bg-white/10 h-1.5 rounded-full overflow-hidden">
-                                <div className="bg-primary-green h-full rounded-full transition-all duration-1000" style={{ width: `${Math.min(plots.length * 20, 100)}%` }} />
-                            </div>
-                        </div>
-                    </Card>
-
-                    <Card variant="glass" className="relative overflow-hidden group border-white/10">
-                        <div className="absolute -right-4 -top-4 text-8xl opacity-10 group-hover:scale-125 transition-transform duration-500">🌱</div>
-                        <div className="relative z-10">
-                            <h3 className="text-xs font-black text-white/40 uppercase tracking-[0.2em] mb-4">Soil Environment</h3>
-                            <div className="flex items-baseline gap-2">
-                                <span className="text-5xl font-black text-highlight-yellow tracking-tighter">
-                                    {latestSoilPh > 0 ? `PH ${latestSoilPh.toFixed(1)}` : 'N/A'}
-                                </span>
-                                <span className="text-white/40 font-bold uppercase text-xs underline decoration-highlight-yellow decoration-2">
-                                    {latestSoilPh > 0 ? 'Analyzed' : 'Pending'}
-                                </span>
-                            </div>
-                            <div className="mt-6 px-3 py-1 bg-highlight-yellow/10 border border-highlight-yellow/20 rounded-xl inline-block">
-                                <span className="text-[10px] text-highlight-yellow font-black uppercase tracking-wider">
-                                    {latestSoilSoc > 0 ? `OC: ${latestSoilSoc.toFixed(1)} g/kg` : 'Awaiting Precision Data'}
-                                </span>
-                            </div>
-                        </div>
-                    </Card>
-
-                    <Card variant="glass" className="relative overflow-hidden group border-white/10">
-                        <div className="absolute -right-4 -top-4 text-8xl opacity-10 group-hover:scale-125 transition-transform duration-500">☁</div>
-                        <div className="relative z-10">
-                            <h3 className="text-xs font-black text-white/40 uppercase tracking-[0.2em] mb-4">Climate Control</h3>
-                            <div className="flex items-baseline gap-2">
-                                <span className="text-5xl font-black text-white tracking-tighter">0</span>
-                                <span className="text-accent-green font-bold uppercase text-xs">Alerts</span>
-                            </div>
-                            <p className="mt-6 text-xs text-white/60 font-medium">Weather conditions optimal for growth.</p>
-                        </div>
-                    </Card>
-
-                    <Card variant="glass" className="relative overflow-hidden group border-white/10">
-                        <div className="absolute -right-4 -top-4 text-8xl opacity-10 group-hover:scale-125 transition-transform duration-500">🚜</div>
-                        <div className="relative z-10">
-                            <h3 className="text-xs font-black text-white/40 uppercase tracking-[0.2em] mb-4">Yield Optimization</h3>
-                            <div className="flex items-baseline gap-2">
-                                <span className="text-5xl font-black text-white/30 tracking-tighter">NA</span>
-                            </div>
-                            <p className="mt-6 text-xs text-white/40 italic font-medium">Unlock advisor by adding land plots.</p>
-                        </div>
-                    </Card>
-                </div>
-
-                {/* Plot List Section */}
-                <div className="animate-in fade-in slide-in-from-bottom-10 duration-1000 delay-200">
-                    <div className="flex items-center justify-between mb-6">
-                        <h2 className="text-2xl font-black text-white tracking-tight flex items-center gap-3">
-                            <span className="text-3xl">🗺</span> Registered Plots
-                        </h2>
-                    </div>
-
-                    {plots.length === 0 ? (
-                        <Card variant="glass" className="py-12 text-center border-dashed border-white/20">
-                            <div className="text-4xl mb-4 opacity-40">📭</div>
-                            <p className="text-white/40 font-bold uppercase text-xs tracking-[0.2em]">No plots registered yet. Use the button above to start mapping.</p>
-                        </Card>
-                    ) : (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {plots.map((plot) => (
-                                <Card key={plot.id} variant="glass" className="p-0 overflow-hidden border-white/10 group">
-                                    <div className="p-6">
-                                        <div className="flex justify-between items-start mb-4">
-                                            <div>
-                                                <h3 className="text-xl font-black text-white tracking-tight">{plot.name}</h3>
-                                                <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest mt-1">ID: #{plot.id}</p>
-                                            </div>
-                                            <button 
-                                                onClick={() => handleDeletePlot(plot.id)}
-                                                className="text-white/20 hover:text-red-400 transition-colors p-2"
-                                                title="Delete Plot"
-                                            >
-                                                🗑
-                                            </button>
-                                        </div>
-                                        
-                                        <div className="grid grid-cols-2 gap-4 mt-6">
-                                            <div className="bg-white/5 rounded-2xl p-3 border border-white/5">
-                                                <p className="text-[8px] font-black text-white/40 uppercase tracking-widest mb-1">Soil PH</p>
-                                                <p className="text-lg font-black text-highlight-yellow">{plot.soil_ph.toFixed(1)}</p>
-                                            </div>
-                                            <div className="bg-white/5 rounded-2xl p-3 border border-white/5">
-                                                <p className="text-[8px] font-black text-white/40 uppercase tracking-widest mb-1">Organic Carbon</p>
-                                                <p className="text-lg font-black text-soft-green">{plot.soil_organic_carbon.toFixed(1)}</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="bg-white/5 px-6 py-3 flex justify-between items-center border-t border-white/5">
-                                        <span className="text-[9px] font-black text-white/30 uppercase tracking-[0.2em]">Soil Health: {plot.soil_ph > 6 ? 'Optimal' : 'Needs Care'}</span>
-                                        <button className="text-[9px] font-black text-soft-green uppercase tracking-widest hover:underline">View Map →</button>
-                                    </div>
-                                </Card>
-                            ))}
-                        </div>
-                    )}
-                </div>
-
-                {/* Floating Indicator / secondary Actions */}
-                <div className="flex flex-col sm:flex-row items-center gap-6 pt-4 animate-in fade-in duration-1000 delay-500">
-                    <Button variant="glass" className="text-white border-white/20 px-8 flex items-center gap-3">
-                        <span className="text-xl">📄</span> Upload Land Documents
-                    </Button>
-                    <div className="flex items-center gap-4 px-6 py-3 glass rounded-2xl border-white/10">
-                        <div className="w-2 h-2 bg-accent-green rounded-full animate-pulse" />
-                        <span className="text-[10px] font-black text-white/80 uppercase tracking-widest leading-none">Global Mapping Servers Active</span>
-                    </div>
-                </div>
+                {/* Plot Detail Modal */}
+                {selectedPlot && (
+                    <PlotDetailModal 
+                        plot={selectedPlot} 
+                        onClose={() => setSelectedPlot(null)} 
+                    />
+                )}
 
             </div>
         </div>

@@ -78,7 +78,16 @@ export default function MapPlotter({ onPlotSaved, onCancel }: MapPlotterProps) {
             },
             (error) => {
                 console.error('Error getting location:', error);
-                alert('Could not retrieve your location. Please check browser permissions.');
+                let msg = 'Could not retrieve your location.';
+                if (error.code === 1) msg = 'Location permission denied. Please allow location access in your browser settings.';
+                else if (error.code === 2) msg = 'Location unavailable. Please check your GPS signal.';
+                else if (error.code === 3) msg = 'Location request timed out. Please try again.';
+                alert(msg);
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 5000,
+                maximumAge: 0
             }
         );
     };
