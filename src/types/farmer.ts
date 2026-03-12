@@ -5,5 +5,6 @@ export interface FarmerData {
     district: string;
     region: string;
     village?: string; // For backend compatibility
+    land_size: number;
     plots: any[];
 }

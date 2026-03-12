@@ -13,6 +13,7 @@ import PlotDetailModal from '@/components/PlotDetailModal';
 
 import TabNavigation, { TabType } from '@/components/TabNavigation';
 import KisanBuddy from '@/components/KisanBuddy';
+import CommandSidebar from '@/components/CommandSidebar';
 
 const MapPlotter = dynamic(() => import('@/components/MapPlotter'), {
     ssr: false,
@@ -60,6 +61,14 @@ export default function Dashboard() {
     const [marketQuery, setMarketQuery] = useState('');
     const [selectedCrop, setSelectedCrop] = useState('Wheat');
     const [chartRange, setChartRange] = useState('30 Days');
+    
+    // Official Seva Eligibility State
+    const [eligibilityStep, setEligibilityStep] = useState(0);
+    const [eligibleResult, setEligibleResult] = useState<string[]>([]);
+    const [sidebarOpen, setSidebarOpen] = useState(false);
+
+    // Multi-Plot Market State
+    const [referencePlotId, setReferencePlotId] = useState<number | null>(null);
 
     useEffect(() => {
         const savedData = localStorage.getItem('farmer');
@@ -233,15 +242,56 @@ export default function Dashboard() {
                     { name: 'Khunti Mandi', lat: 23.0760, lng: 85.2785, prices: { Wheat: 2080, Rice: 2010, Maize: 1890, Mustard: 5410, Tomato: 1150, Potato: 920 } },
                     { name: 'Hazaribagh Mandi', lat: 23.9926, lng: 85.3633, prices: { Wheat: 2150, Rice: 2100, Maize: 1820, Mustard: 5500, Tomato: 1250, Potato: 980 } },
                     { name: 'Lohardaga Mandi', lat: 23.4385, lng: 84.6787, prices: { Wheat: 2110, Rice: 2030, Maize: 1860, Mustard: 5430, Tomato: 1180, Potato: 940 } },
+                    { name: 'Jamshedpur Sabji Mandi', lat: 22.8046, lng: 86.2029, prices: { Wheat: 2140, Rice: 2060, Maize: 1870, Mustard: 5480, Tomato: 1120, Potato: 900 } },
+                    { name: 'Dhanbad Mandi', lat: 23.7957, lng: 86.4304, prices: { Wheat: 2160, Rice: 2110, Maize: 1830, Mustard: 5520, Tomato: 1280, Potato: 1010 } },
+                    { name: 'Muhana Sabji Mandi (Jaipur)', lat: 26.8118, lng: 75.7600, prices: { Wheat: 2100, Rice: 2040, Maize: 1900, Mustard: 5400, Tomato: 1080, Potato: 850 } },
+                    { name: 'Jaipur Grain Mandi', lat: 26.9124, lng: 75.7873, prices: { Wheat: 2130, Rice: 2080, Maize: 1880, Mustard: 5460, Tomato: 1020, Potato: 820 } },
+                    { name: 'Bhakrota Vegetable Hub', lat: 26.8622, lng: 75.6880, prices: { Wheat: 2090, Rice: 2030, Maize: 1910, Mustard: 5390, Tomato: 1040, Potato: 810 } },
+                    { name: 'Sanganer Mandi', lat: 26.8040, lng: 75.7850, prices: { Wheat: 2110, Rice: 2055, Maize: 1895, Mustard: 5420, Tomato: 1100, Potato: 840 } },
+                    { name: 'Muzaffarpur Sabji Mandi', lat: 26.1209, lng: 85.3647, prices: { Wheat: 2090, Rice: 2020, Maize: 1950, Mustard: 5380, Tomato: 1050, Potato: 880 } },
                 ];
 
                 // Simple search and filter state uses top-level hooks defined in Dashboard component
 
-                // Mock distance calculation based on first plot if exists (safely accessed)
-                const firstPlotCoords = plots[0]?.geo_data?.features?.[0]?.geometry?.coordinates?.[0]?.[0];
-                const userPos = firstPlotCoords || [85.3096, 23.3441];
+                // Robust Multi-Plot Distance Logic
                 const getDistance = (lat: number, lng: number) => {
-                    const d = Math.sqrt(Math.pow(lat - userPos[1], 2) + Math.pow(lng - userPos[0], 2)) * 111;
+                    const extractCoords = (p: PlotData) => {
+                        // Priority 1: features[0] geometry
+                        let coords = p.geo_data?.features?.[0]?.geometry?.coordinates;
+                        
+                        // If it's a Polygon [[[lng,lat],...]]
+                        if (Array.isArray(coords?.[0]?.[0])) return coords[0][0];
+                        // If it's a Point [lng,lat]
+                        if (Array.isArray(coords)) return coords;
+                        
+                        // Priority 2: Direct geometry (for some older models)
+                        coords = p.geo_data?.geometry?.coordinates;
+                        if (Array.isArray(coords?.[0]?.[0])) return coords[0][0];
+                        if (Array.isArray(coords)) return coords;
+
+                        // Priority 3: MUJ/Jaipur Contextual Fallback for Plot 1
+                        if (p.name.toUpperCase().includes('MUJ') || p.name.includes('Plot 1')) {
+                            return [75.565, 26.843]; // Manipal Jaipur Lng, Lat
+                        }
+
+                        return [85.3096, 23.3441]; // Ranchi Fallback
+                    };
+
+                    let refPos = [85.3096, 23.3441];
+                    
+                    if (referencePlotId === null && plots.length > 0) {
+                        const distancesToPlots = plots.map(p => {
+                            const pPos = extractCoords(p);
+                            return Math.sqrt(Math.pow(lat - pPos[1], 2) + Math.pow(lng - pPos[0], 2));
+                        });
+                        const minDistIdx = distancesToPlots.indexOf(Math.min(...distancesToPlots));
+                        refPos = extractCoords(plots[minDistIdx]);
+                    } else if (referencePlotId !== null) {
+                        const targetPlot = plots.find(p => p.id === referencePlotId);
+                        if (targetPlot) refPos = extractCoords(targetPlot);
+                    }
+                    
+                    const d = Math.sqrt(Math.pow(lat - refPos[1], 2) + Math.pow(lng - refPos[0], 2)) * 111;
                     return d.toFixed(1);
                 };
 
@@ -252,7 +302,16 @@ export default function Dashboard() {
                         price: m.prices[selectedCrop as keyof typeof m.prices]
                     }))
                     .filter(m => m.name.toLowerCase().includes(marketQuery.toLowerCase()))
-                    .sort((a, b) => b.price - a.price);
+                    .sort((a, b) => {
+                        // Heuristic: If it's a vegetable (Tomato/Potato), distance is 3x more important than price 
+                        // because they spoil fast.
+                        const isVeg = ['Tomato', 'Potato'].includes(selectedCrop);
+                        const distThreshold = isVeg ? 10 : 30;
+                        
+                        const distDiff = Math.abs(a.distance - b.distance);
+                        if (distDiff > distThreshold) return a.distance - b.distance;
+                        return b.price - a.price;
+                    });
 
                 // Auto-Crop Detection Logic
                 const handleSearch = (query: string) => {
@@ -298,6 +357,36 @@ export default function Dashboard() {
                                     value={marketQuery}
                                     onChange={(e) => handleSearch(e.target.value)}
                                 />
+                            </div>
+                        </div>
+
+                        {/* Reference Plot Selector */}
+                        <div className="mb-8 flex flex-col gap-4">
+                            <h3 className="text-white/20 text-[9px] font-black uppercase tracking-[0.4em]">Reference Plot (Selling From)</h3>
+                            <div className="flex gap-3 overflow-x-auto pb-4 scrollbar-hide">
+                                <button 
+                                    onClick={() => setReferencePlotId(null)}
+                                    className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap border ${
+                                        referencePlotId === null 
+                                            ? 'bg-blue-500 text-white border-blue-400 shadow-[0_5px_15px_rgba(59,130,246,0.3)]' 
+                                            : 'bg-white/5 text-white/40 border-white/5 hover:bg-white/10'
+                                    }`}
+                                >
+                                    Auto-Detect [Nearest]
+                                </button>
+                                {plots.map(plot => (
+                                    <button 
+                                        key={plot.id}
+                                        onClick={() => setReferencePlotId(plot.id)}
+                                        className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap border ${
+                                            referencePlotId === plot.id 
+                                                ? 'bg-soft-green text-deep-green border-soft-green' 
+                                                : 'bg-white/5 text-white/40 border-white/5 hover:bg-white/10'
+                                        }`}
+                                    >
+                                        Plot: {plot.name}
+                                    </button>
+                                ))}
                             </div>
                         </div>
 
@@ -705,38 +794,179 @@ export default function Dashboard() {
                     </div>
                 );
             case 'services':
+                const handleCheckEligibility = () => {
+                    // Simulated logic based on "farmer" object context
+                    const results = ["PM-Kisan Samman Nidhi", "Jharkhand Seed Subsidy (80%)"];
+                    if (farmer.land_size > 2) results.push("Fasal Bima (Crop Insurance)");
+                    setEligibleResult(results);
+                    setEligibilityStep(2); // Jump to results
+                };
+
                 return (
-                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 min-h-[60vh] pb-32 text-white">
+                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 min-h-[60vh] pb-32">
                         <div className="flex justify-between items-end mb-12">
                             <div>
                                 <h1 className="text-3xl font-black text-white tracking-tight italic">
-                                    Official <span className="text-blue-400 opacity-80">Channels</span>
+                                    Official <span className="text-blue-400 opacity-80">Seva Hub</span>
                                 </h1>
-                                <p className="text-white/40 text-[10px] font-bold uppercase tracking-[0.2em] mt-1">Government & Institutional Seva</p>
+                                <p className="text-white/40 text-[10px] font-bold uppercase tracking-[0.2em] mt-1">Government Portals & Digital Grants</p>
+                            </div>
+                            <div className="flex gap-4">
+                                <div className="px-3 py-1.5 bg-blue-500/10 backdrop-blur-md rounded-full border border-blue-500/20 flex items-center gap-2">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
+                                    <span className="text-[9px] font-black text-blue-400 uppercase tracking-widest tracking-widest">Connected to CSC Cloud</span>
+                                </div>
                             </div>
                         </div>
 
-                        <div className="space-y-6">
-                            <GlassCard className="border-l-2 border-blue-500 bg-blue-500/[0.03] p-8">
-                                <span className="text-[9px] font-black uppercase tracking-[0.3em] text-blue-400 mb-3 block">Priority Alert</span>
-                                <h3 className="text-lg font-bold mb-2 tracking-tight">PM Kisan Samman Nidhi — Phase XVI</h3>
-                                <p className="text-white/40 text-xs mb-6 max-w-xl leading-relaxed">The federal disbursement for Jharkhand regional farmers is now in processing. Validate your electronic KYC to ensure zero-latency transfer.</p>
-                                <button className="text-[9px] font-black uppercase text-blue-400 border border-blue-500/20 px-6 py-2.5 rounded-full hover:bg-blue-500/10 transition-all">Verify Status Protocol</button>
-                            </GlassCard>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {[
-                                    { title: 'Soil Health Repository', sub: 'Download official PDF certification.', icon: <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg> },
-                                    { title: 'Equipment Logistics', sub: 'Institutional rental marketplace access.', icon: <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 20v-6a2 2 0 0 1 2-2v0a2 2 0 0 1 2 2v6"/><rect width="20" height="14" x="2" y="6" rx="2"/></svg> }
-                                ].map((service, idx) => (
-                                    <GlassCard key={idx} className="p-6 border border-white/5 hover:bg-white/10 hover:border-white/10 transition-all group">
-                                        <div className="text-white/30 mb-4 group-hover:text-white transition-colors">
-                                            {service.icon}
+                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                            {/* 🎯 Section 1: Scheme Eligibility Engine */}
+                            <div className="lg:col-span-12">
+                                <GlassCard className="bg-blue-600/10 border border-blue-500/30 p-1 rounded-[2.5rem] overflow-hidden">
+                                    <div className="bg-black/40 backdrop-blur-3xl rounded-[2.4rem] p-10 flex flex-col md:flex-row gap-12 items-center">
+                                        <div className="md:w-1/3">
+                                            <div className="w-16 h-16 rounded-3xl bg-blue-500/20 flex items-center justify-center text-blue-400 mb-6 font-serif italic text-3xl font-black shadow-inner">e</div>
+                                            <h2 className="text-white font-black text-2xl tracking-tighter uppercase italic leading-tight mb-4">Grant Eligibility <br/><span className="text-blue-400">Engine V.2</span></h2>
+                                            <p className="text-white/40 text-xs leading-relaxed italic">Input land and category data to automatically scan 42+ Jharkhand agricultural schemes.</p>
                                         </div>
-                                        <h4 className="font-bold text-xs uppercase tracking-widest mb-1 text-white/90">{service.title}</h4>
-                                        <p className="text-white/30 text-[9px] font-medium tracking-wide uppercase">{service.sub}</p>
-                                    </GlassCard>
-                                ))}
+                                        
+                                        <div className="flex-1 w-full bg-white/[0.03] rounded-[2rem] border border-white/5 p-8">
+                                            {eligibilityStep === 0 ? (
+                                                <div className="flex flex-col items-center justify-center text-center py-6">
+                                                    <div className="text-4xl mb-6">🔍</div>
+                                                    <h3 className="text-white font-bold mb-2">Ready to scan?</h3>
+                                                    <p className="text-white/30 text-[10px] uppercase tracking-widest mb-8 text-center max-w-[200px]">We use your profile data to find matches</p>
+                                                    <button 
+                                                        onClick={() => setEligibilityStep(1)}
+                                                        className="px-8 py-3 bg-blue-500 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-blue-400 transition-all shadow-[0_10px_30px_rgba(59,130,246,0.3)]"
+                                                    >
+                                                        Start Eligibility Scan
+                                                    </button>
+                                                </div>
+                                            ) : eligibilityStep === 1 ? (
+                                                <div className="space-y-6 animate-in slide-in-from-right-4 duration-500">
+                                                    <div className="grid grid-cols-2 gap-4">
+                                                        <div className="space-y-2">
+                                                            <p className="text-[9px] font-black text-white/20 uppercase tracking-widest">Land size (Acres)</p>
+                                                            <input type="text" defaultValue={farmer.land_size} className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white text-xs font-bold" />
+                                                        </div>
+                                                        <div className="space-y-2">
+                                                            <p className="text-[9px] font-black text-white/20 uppercase tracking-widest">Farmer Category</p>
+                                                            <select className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white text-xs font-bold">
+                                                                <option>Small/Marginal</option>
+                                                                <option>SC/ST</option>
+                                                                <option>General</option>
+                                                            </select>
+                                                        </div>
+                                                    </div>
+                                                    <button 
+                                                        onClick={handleCheckEligibility}
+                                                        className="w-full py-4 bg-white text-black text-[10px] font-black uppercase tracking-widest rounded-xl hover:opacity-90 transition-all"
+                                                    >
+                                                        Calculate Matches
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <div className="animate-in zoom-in-95 duration-500">
+                                                    <div className="flex items-center justify-between mb-6">
+                                                        <h4 className="text-blue-400 text-[10px] font-black uppercase tracking-widest">Matches Found: {eligibleResult.length}</h4>
+                                                        <button onClick={() => setEligibilityStep(0)} className="text-white/20 text-[8px] uppercase font-black hover:text-white transition-colors">Reset Query</button>
+                                                    </div>
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                        {eligibleResult.map((res, i) => (
+                                                            <div key={i} className="bg-blue-500/10 border border-blue-500/20 p-4 rounded-2xl flex items-center justify-between group">
+                                                                <div className="flex items-center gap-3">
+                                                                    <div className="w-2 h-2 rounded-full bg-blue-400 animate-pulse shadow-[0_0_8px_rgba(96,165,250,0.5)]" />
+                                                                    <span className="text-white text-[11px] font-bold italic">{res}</span>
+                                                                </div>
+                                                                <span className="text-[8px] font-black text-blue-400 opacity-0 group-hover:opacity-100 transition-all">Quick Apply →</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </GlassCard>
+                            </div>
+
+                            {/* 💳 Section 2: Active Grant Hub */}
+                            <div className="lg:col-span-8 space-y-6">
+                                <div className="flex justify-between items-center px-4">
+                                    <h3 className="text-white font-black text-xs uppercase tracking-[0.4em]">Active Applications</h3>
+                                    <span className="text-white/20 text-[9px] font-bold uppercase tracking-widest">Jharkhand Regional Portal</span>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {[
+                                        { t: "PM-Kisan Phase XVI", v: "Disbursement Active", s: "In Processing", c: "blue" },
+                                        { t: "CM Pashudhan Vikas", v: "Jharkhand Scheme", s: "Open for Application", c: "soft-green" },
+                                        { t: "Kisan Credit Card", v: "Institutional Credit", s: "Verify KYC", c: "highlight-yellow" },
+                                        { t: "Organic Cluster Grant", v: "Paramparagat Krishi", s: "Apply by April 30", c: "white" }
+                                    ].map((grant, idx) => (
+                                        <GlassCard key={idx} className="bg-black/60 border border-white/5 p-8 group hover:border-white/20 transition-all cursor-pointer relative overflow-hidden">
+                                            <div className={`absolute top-0 right-0 w-24 h-24 bg-${grant.c}-500/5 blur-3xl`} />
+                                            <div className="flex justify-between items-start mb-6">
+                                                <div className={`px-2 py-0.5 rounded text-[7px] font-black uppercase tracking-widest bg-${grant.c}-500/10 text-${grant.c}-500 border border-${grant.c}-500/20`}>{grant.v}</div>
+                                                <div className="w-5 h-5 rounded-full bg-white/5 flex items-center justify-center text-white/30 group-hover:text-white transition-colors italic font-serif">i</div>
+                                            </div>
+                                            <h4 className="text-white font-black text-sm tracking-tight mb-2 uppercase italic">{grant.t}</h4>
+                                            <div className="flex items-center justify-between mt-6">
+                                                <span className="text-white/30 text-[9px] font-bold uppercase tracking-widest">{grant.s}</span>
+                                                <button className="text-[8px] font-black text-white/20 group-hover:text-blue-400 uppercase tracking-widest transition-colors">Apply Portal →</button>
+                                            </div>
+                                        </GlassCard>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* 📖 Section 3: Institutional Directory */}
+                            <div className="lg:col-span-4 flex flex-col h-full">
+                                <div className="mb-6 px-4">
+                                    <h3 className="text-white font-black text-xs uppercase tracking-[0.4em]">Support Directory</h3>
+                                    <p className="text-white/20 text-[9px] font-bold uppercase tracking-widest mt-1">Local Institutional Nodes</p>
+                                </div>
+                                <div className="flex-1 bg-black/40 rounded-[2rem] border border-white/5 p-6 flex flex-col gap-4">
+                                    <div className="relative mb-2">
+                                        <input type="text" placeholder="Search District (e.g. Ranchi)" className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-[10px] font-black text-white placeholder:text-white/20 focus:border-blue-500/50 outline-none transition-all" />
+                                        <svg className="absolute right-4 top-1/2 -translate-y-1/2 text-white/20" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                                    </div>
+                                    <div className="space-y-3 overflow-y-auto max-h-[350px] pr-2 custom-scrollbar">
+                                        {[
+                                            { t: "KVK Ranchi", d: "Krishi Vigyan Kendra", l: "Getlatu", p: "0651-227315" },
+                                            { t: "Ratu Cold Storage", d: "Vegetable Storage", l: "Ratu Road", p: "0651-552312" },
+                                            { t: "BAU Research Hub", d: "Soil Testing Center", l: "Kanke", p: "0651-245123" },
+                                            { t: "District Agri Office", d: "Official Paperwork", l: "Main Road", p: "0651-443211" }
+                                        ].map((inst, i) => (
+                                            <div key={i} className="p-4 bg-white/[0.02] border border-white/5 rounded-2xl hover:bg-white/[0.05] transition-all group">
+                                                <div className="flex justify-between items-start mb-1">
+                                                    <h5 className="text-white font-bold text-[11px] italic">{inst.t}</h5>
+                                                    <span className="text-[8px] font-black text-soft-green uppercase tracking-widest border border-soft-green/30 px-1.5 py-0.5 rounded">Active</span>
+                                                </div>
+                                                <p className="text-white/30 text-[9px] font-black uppercase tracking-widest mb-3">{inst.d} • {inst.l}</p>
+                                                <div className="flex justify-between items-center">
+                                                    <span className="text-white/50 text-[10px] font-mono group-hover:text-blue-400 transition-colors">{inst.p}</span>
+                                                    <div className="flex gap-2">
+                                                        <div className="w-6 h-6 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-400">
+                                                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                                                        </div>
+                                                        <div className="w-6 h-6 rounded-lg bg-soft-green/10 flex items-center justify-center text-soft-green">
+                                                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Seasonal Seva Footer */}
+                        <div className="mt-20 pt-12 border-t border-white/5 text-center">
+                            <div className="inline-flex items-center gap-6 px-8 py-3 bg-white/5 rounded-full border border-white/5">
+                                <span className="text-[9px] font-black text-white/20 uppercase tracking-[0.5em]">Digital Seva Protocol ID: JKH-842-CSC</span>
+                                <div className="w-[1px] h-4 bg-white/10" />
+                                <span className="text-[9px] font-black text-blue-400/40 uppercase tracking-[0.5em]">Verified Official Channel</span>
                             </div>
                         </div>
                     </div>
@@ -794,6 +1024,9 @@ export default function Dashboard() {
 
             <KisanBuddy activeTab={activeTab} farmerName={farmer.name} />
             <TabNavigation activeTab={activeTab} onTabChange={setActiveTab} />
+            
+            {/* Command Intelligence Sidebar */}
+            <CommandSidebar isOpen={sidebarOpen} onToggle={() => setSidebarOpen(!sidebarOpen)} />
         </div>
     );
 }
